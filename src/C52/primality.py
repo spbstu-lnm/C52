@@ -245,6 +245,12 @@ class TestResultPrinter:
         return 0
 
 
+@dataclass(frozen=True)
+class CarmichaelNumber:
+    number: int
+    divisors: tuple
+
+
 class CarmichaelProvider:
     min: int
     mrt: MillerRabinTest
@@ -256,7 +262,7 @@ class CarmichaelProvider:
             min_val = 561
         self.min = min_val
 
-    def get_number(self, rng: Random | None = None) -> int:
+    def get_number(self, rng: Random | None = None) -> CarmichaelNumber:
         if rng is None:
             rng = Random()
 
@@ -276,4 +282,4 @@ class CarmichaelProvider:
 
             # Check if all three factors are prime
             if all([self.mrt.is_prime(p).is_prime for p in {p1, p2, p3}]):
-                return p1 * p2 * p3
+                return CarmichaelNumber(p1 * p2 * p3, (p1, p2, p3))

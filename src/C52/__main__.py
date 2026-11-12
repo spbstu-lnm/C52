@@ -4,10 +4,17 @@
 from argparse import ArgumentParser, Namespace
 from sys import exit, stderr
 
-from .primality import FermatTest, SolovayStrassenTest, MillerRabinTest, TestResultPrinter
+from .primality import (
+    FermatTest,
+    SolovayStrassenTest,
+    MillerRabinTest,
+    TestResultPrinter,
+    CarmichaelProvider,
+)
 
 
 OPTIMAL_BENCHMARK_ITER_AMT = 1000
+DEFAULT_ROUND_AMT = 5
 
 
 def parse_args() -> Namespace:
@@ -35,7 +42,12 @@ def parse_args() -> Namespace:
     )
 
     parser.add_argument(
-        '-r', '--rounds', dest='rounds',
+        '-c', '--carmichael', dest='carmichael_amt',
+        help='run tests on carmichael numbers',
+        type=int, default=0,
+    )
+    parser.add_argument(
+        '-r', '--rounds', dest='rounds', default=DEFAULT_ROUND_AMT,
         help='amount of algorithm rounds', type=int,
     )
 
@@ -59,15 +71,30 @@ def main() -> None:
 
         if args.enable_benchmark:
             print('Benchmark:')
-            print('    Fermat:', fermat.benchmark_ms(args.number, OPTIMAL_BENCHMARK_ITER_AMT) / OPTIMAL_BENCHMARK_ITER_AMT)
-            print('    Solovay--Strassen:', solovay_strassen.benchmark_ms(args.number, OPTIMAL_BENCHMARK_ITER_AMT) / OPTIMAL_BENCHMARK_ITER_AMT)
-            print('    Miller--Rabin:', miller_rabin.benchmark_ms(args.number, OPTIMAL_BENCHMARK_ITER_AMT) / OPTIMAL_BENCHMARK_ITER_AMT)
+
+            fermat_ms = fermat.benchmark_ms(args.number, OPTIMAL_BENCHMARK_ITER_AMT)
+            solovay_strassen_ms = solovay_strassen.benchmark_ms(args.number, OPTIMAL_BENCHMARK_ITER_AMT)
+            miller_rabin_ms = miller_rabin.benchmark_ms(args.number, OPTIMAL_BENCHMARK_ITER_AMT)
+            
+            print('    Fermat:', fermat_ms / OPTIMAL_BENCHMARK_ITER_AMT)
+            print('    Solovay--Strassen:', solovay_strassen_ms / OPTIMAL_BENCHMARK_ITER_AMT)
+            print('    Miller--Rabin:', miller_rabin_ms / OPTIMAL_BENCHMARK_ITER_AMT)
 
         if args.display_stats:
             print('Stats:')
             print('    Fermat:', fermat.gather_stats(args.number, OPTIMAL_BENCHMARK_ITER_AMT))
             print('    Solovay--Strassen:', solovay_strassen.gather_stats(args.number, OPTIMAL_BENCHMARK_ITER_AMT))
             print('    Miller--Rabin:', miller_rabin.gather_stats(args.number, OPTIMAL_BENCHMARK_ITER_AMT))
+
+        if args.carmichael_amt > 0:
+            carmichael_provider = CarmichaelProvider()
+            carmichael_nums = (carmichael_provider.get_number() for _ in range(args.carmichael_amt))
+
+            for i in carmichael_nums:
+                print('Carmichael number:', i.number)
+                print('    Divisors:', *i.divisors)
+                for j in (fermat, solovay_strassen, miller_rabin):
+                    printer.print(j.is_prime(i.number))
 
     except KeyboardInterrupt:
         print('\nCaught keyboard interrupt. Exiting...', file=stderr)
